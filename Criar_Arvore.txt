@@ -1,0 +1,1 @@
+Get-ChildItem -Recurse | Where-Object { $_.FullName -notmatch '\\\.wwebjs_auth\\|\\\.wwebjs_cache\\|\\HERA\\|\\node_modules\\' } | Out-File estrutura.txt

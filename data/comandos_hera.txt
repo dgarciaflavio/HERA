@@ -1,0 +1,600 @@
+COMANDOS DA HERA
+================
+
+Este documento lista os comandos atualmente aceitos pela Hera, os gatilhos em linguagem natural
+e as condições necessárias para cada um funcionar corretamente.
+
+----------------------------------------------------------------------
+1. COMANDOS ADMINISTRATIVOS
+----------------------------------------------------------------------
+
+1.1) Disparar atas
+Comandos:
+- hera, disparar atas
+- robô, disparar atas
+
+O que faz:
+- Inicia manualmente a rotina de varredura de atas e envio de alertas.
+
+Condições para funcionar:
+- A mensagem precisa ter sido enviada por você mesmo.
+- O cliente do WhatsApp precisa estar online.
+- A configuração da equipe e das planilhas precisa estar correta.
+- Os arquivos usados na rotina de atas precisam existir e estar acessíveis.
+
+Observações:
+- Se enviado por outro contato, a Hera não executa esse comando.
+- Também existe rotina automática por agendamento.
+
+
+1.2) Atualizar catálogo SIDEC
+Comando:
+- hera, atualizar catálogo sidec
+
+O que faz:
+- Força uma atualização manual do catálogo local SIDEC usado pela Hera.
+
+Condições para funcionar:
+- O processo Node da Hera precisa estar rodando.
+- A API de dados abertos do Compras.gov.br precisa estar acessível.
+- O banco local/catalogo local precisa poder ser gravado.
+- O comando precisa ser digitado exatamente nesse formato ou com variação mínima compatível com regex.
+
+Observações:
+- Também existe atualização automática por agendamento, se configurada.
+
+
+1.3) Debug de código SIDEC
+Comando:
+- hera, debug sidec 486120
+
+O que faz:
+- Mostra dados brutos e inferidos sobre um código SIDEC específico.
+- Exibe statusItem, statusPdm, situação extraída, bloqueio manual, etc.
+
+Condições para funcionar:
+- O código precisa estar no formato esperado.
+- A API do Compras.gov.br precisa responder.
+- O banco local SIDEC precisa estar acessível.
+
+Observações:
+- Útil para investigar divergências entre API pública e catálogo visual.
+
+
+1.4) Bloquear SIDEC manualmente
+Comando:
+- hera, bloquear sidec 486120 Suspenso no catálogo visual
+
+O que faz:
+- Adiciona o código à lista manual de bloqueios.
+- A Hera passa a tratar esse SIDEC como "Não utilizável".
+
+Condições para funcionar:
+- O comando precisa conter:
+  - o prefixo "hera, bloquear sidec"
+  - um código
+  - um motivo após o código
+- O arquivo data/sidec_bloqueados.json precisa poder ser criado ou alterado.
+
+Observações:
+- Serve para contornar casos em que a API pública não reflete corretamente a situação do catálogo visual.
+
+
+1.5) Desbloquear SIDEC
+Comando:
+- hera, desbloquear sidec 486120
+
+O que faz:
+- Remove o código da lista manual de bloqueios.
+
+Condições para funcionar:
+- O comando precisa conter um código válido.
+- O arquivo data/sidec_bloqueados.json precisa estar acessível para leitura/escrita.
+
+Observações:
+- Se o código não estiver bloqueado, a Hera informa isso.
+
+
+1.6) Listar bloqueios SIDEC
+Comando:
+- hera, listar bloqueios sidec
+
+O que faz:
+- Mostra todos os códigos atualmente bloqueados manualmente.
+
+Condições para funcionar:
+- O arquivo data/sidec_bloqueados.json precisa existir ou poder ser criado.
+
+Observações:
+- Se não houver bloqueios, a Hera informa que a lista está vazia.
+
+
+----------------------------------------------------------------------
+2. CONTROLE DE MODO HUMANO / MODO IA
+----------------------------------------------------------------------
+
+2.1) Pausar a Hera para um contato
+Comando:
+- &
+
+O que faz:
+- Coloca o contato atual em modo pausado.
+- A Hera deixa de responder automaticamente para esse contato.
+
+Condições para funcionar:
+- A mensagem precisa ter sido enviada por você mesmo.
+- A mensagem precisa ser exatamente "&".
+
+Observações:
+- O comando é apagado da conversa, se possível.
+
+
+2.2) Reativar a Hera para um contato
+Comando:
+- &&
+
+O que faz:
+- Remove o contato atual do modo pausado.
+- A Hera volta a responder automaticamente.
+
+Condições para funcionar:
+- A mensagem precisa ter sido enviada por você mesmo.
+- A mensagem precisa ser exatamente "&&".
+
+Observações:
+- O comando é apagado da conversa, se possível.
+
+
+----------------------------------------------------------------------
+3. CONSULTAS DIRETAS NA PLANILHA LOCAL
+----------------------------------------------------------------------
+
+IMPORTANTE:
+- Estas consultas só devem funcionar para contatos de trabalho autorizados.
+- Regra atual: o contato deve ter "INCA" no nome para ser tratado como contato autorizado de trabalho.
+- Se o contato não tiver "INCA" no nome, a Hera NÃO deve executar a consulta.
+- Nesse caso, a resposta deve ser:
+
+"Você não pode fazer essa consulta pois seu número não está salvo, enviei para o Flavio verificar e te dar um retorno."
+
+3.1) Comando buscar
+Comando:
+- buscar <termo>
+
+Exemplos:
+- buscar dipirona
+- buscar seringa
+- buscar 486120
+
+O que faz:
+- Consulta a planilha local de estoque/grade através da função buscarItem().
+
+Condições para funcionar:
+- A mensagem precisa começar com "buscar ".
+- O contato precisa ter "INCA" no nome.
+- O arquivo Excel local da grade precisa existir e estar acessível.
+- A estrutura da planilha precisa ser compatível com a leitura implementada.
+
+Se a condição do contato não for atendida:
+- A Hera deve responder:
+  "Você não pode fazer essa consulta pois seu número não está salvo, enviei para o Flavio verificar e te dar um retorno."
+
+Observações:
+- Esse comando fura o cooldown de conversa casual somente para contatos autorizados.
+
+
+3.2) Lista de códigos em lote
+Formato:
+- vários códigos em linhas separadas
+- ou separados por vírgula
+- ou separados por ponto e vírgula
+
+Exemplos:
+- 486120
+  630428
+  406675
+
+- 486120, 630428, 406675
+
+O que faz:
+- Processa cada código individualmente usando a lógica de busca da planilha local.
+
+Condições para funcionar:
+- Todos os itens da lista precisam parecer códigos válidos.
+- O parser precisa conseguir identificar a lista.
+- O contato precisa ter "INCA" no nome.
+- A planilha local precisa estar acessível.
+
+Se a condição do contato não for atendida:
+- A Hera deve responder:
+  "Você não pode fazer essa consulta pois seu número não está salvo, enviei para o Flavio verificar e te dar um retorno."
+
+Observações:
+- Também fura o cooldown somente para contatos autorizados.
+
+
+----------------------------------------------------------------------
+4. CONSULTAS SIDEC / CATMAT
+----------------------------------------------------------------------
+
+4.1) Consultar SIDEC/CATMAT
+Comandos aceitos por padrão:
+- consultar sidec 486120
+- sidec 486120
+- consultar catmat 486120
+- catmat 486120
+
+O que faz:
+- Consulta o código na API do Compras.gov.br.
+- Verifica PDM.
+- Aplica bloqueio manual, se existir.
+- Tenta encontrar substituto quando o item não está utilizável.
+
+Condições para funcionar:
+- O texto precisa conter um código reconhecível.
+- A API do módulo material precisa estar acessível.
+- O banco local SIDEC precisa estar acessível.
+- Se houver bloqueio manual, o arquivo data/sidec_bloqueados.json precisa estar legível.
+
+Observações:
+- A Hera usa o conceito operacional de:
+  - Utilizável
+  - Não utilizável
+- Não depende apenas de "ativo/inativo" da API pública.
+
+
+----------------------------------------------------------------------
+5. CONSULTAS DE ITEM / ESTOQUE / GRADE EM LINGUAGEM NATURAL
+----------------------------------------------------------------------
+
+IMPORTANTE:
+- Estas consultas só devem funcionar para contatos autorizados de trabalho.
+- Regra atual: o contato deve ter "INCA" no nome.
+- Se não tiver "INCA" no nome, a Hera não deve consultar a planilha nem retornar dados de item/estoque/grade.
+
+Resposta obrigatória nesse caso:
+"Você não pode fazer essa consulta pois seu número não está salvo, enviei para o Flavio verificar e te dar um retorno."
+
+5.1) Consultas por código ou descrição
+Exemplos:
+- item 486120
+- qual o código da seringa 1 ml
+- me fala o código da dipirona
+- buscar item seringa
+- procure para mim o item seringa
+- busque para mim a dipirona
+
+O que faz:
+- A Hera tenta inferir que a mensagem é uma consulta de item.
+- Encaminha a busca para a lógica de planilha local.
+
+Condições para funcionar:
+- A heurística do texto precisa reconhecer a mensagem como consulta de item.
+- O contato precisa ter "INCA" no nome.
+- A planilha local precisa estar acessível.
+- A estrutura da planilha precisa ser compatível com a função buscarItem().
+
+Se a condição do contato não for atendida:
+- A Hera deve responder:
+  "Você não pode fazer essa consulta pois seu número não está salvo, enviei para o Flavio verificar e te dar um retorno."
+
+Observações:
+- Funciona por heurística, então pequenas variações podem ou não ser reconhecidas.
+
+
+----------------------------------------------------------------------
+6. CONTAGEM DA GRADE
+----------------------------------------------------------------------
+
+IMPORTANTE:
+- A contagem da grade só deve ser informada para contatos autorizados.
+- Regra atual: o contato deve ter "INCA" no nome.
+- Caso contrário, a Hera não deve informar quantidade de itens da grade.
+
+Resposta obrigatória nesse caso:
+"Você não pode fazer essa consulta pois seu número não está salvo, enviei para o Flavio verificar e te dar um retorno."
+
+6.1) Quantidade de itens da grade
+Exemplos:
+- quantos itens tem na grade
+- qual o tamanho da grade
+- conte os itens da grade
+- quantidade de itens da grade
+
+O que faz:
+- Conta os itens únicos existentes na planilha da grade.
+
+Condições para funcionar:
+- A mensagem precisa coincidir com uma das heurísticas previstas.
+- O contato precisa ter "INCA" no nome.
+- A planilha local da grade precisa estar acessível.
+
+Se a condição do contato não for atendida:
+- A Hera deve responder:
+  "Você não pode fazer essa consulta pois seu número não está salvo, enviei para o Flavio verificar e te dar um retorno."
+
+Observações:
+- A resposta depende do conteúdo atual da planilha.
+
+
+----------------------------------------------------------------------
+7. PREGÕES / PNCP / EDITAIS
+----------------------------------------------------------------------
+
+7.1) Consultar pregão
+Exemplos:
+- PE 12345/2025
+- pregão 12345/2025
+
+O que faz:
+- A Hera tenta consultar dados do pregão via PNCP / APIs públicas configuradas.
+
+Condições para funcionar:
+- O número do pregão precisa ser extraído corretamente.
+- As APIs consultadas precisam estar acessíveis.
+- O formato do pregão precisa ser reconhecível.
+
+Observações:
+- Esse tipo de comando é tratado como comando especial.
+
+
+7.2) Ler edital
+Exemplos:
+- ler edital PE 12345/2025
+- consultar edital 12345/2025
+- baixar edital 12345/2025
+
+O que faz:
+- Tenta localizar e ler o edital associado ao pregão.
+
+Condições para funcionar:
+- O número do pregão precisa ser reconhecido.
+- A API / origem dos documentos precisa estar acessível.
+- O parser do edital precisa conseguir tratar o arquivo retornado.
+
+Observações:
+- A qualidade da resposta depende do conteúdo do edital e da forma como ele foi publicado.
+
+
+7.3) Listar pregões
+Exemplos:
+- quais são os pregões ativos
+- listar pregões
+
+O que faz:
+- A Hera responde conforme a lógica implementada para pregões.
+
+Condições para funcionar:
+- A heurística precisa identificar a mensagem como pedido de listagem de pregões.
+
+Observações:
+- Dependendo da implementação atual, a resposta pode ser mais orientativa do que uma listagem completa.
+
+
+----------------------------------------------------------------------
+8. CONTRATOS PÚBLICOS / COMPRAS.GOV.BR
+----------------------------------------------------------------------
+
+8.1) Consultar contratos públicos
+Comando:
+- contrato <termo>
+
+Exemplos:
+- contrato 123/2024
+- contrato empresa XPTO
+- contrato manutenção predial
+- contrato 250052
+
+O que faz:
+- Consulta contratos públicos na base aberta do Compras.gov.br / módulo de contratos.
+- Tenta localizar contratos por número, fornecedor, órgão, unidade, UASG ou texto livre.
+- Retorna um resumo com os principais dados dos contratos encontrados.
+
+Condições para funcionar:
+- A mensagem precisa começar com "contrato ".
+- A API pública de contratos do Compras.gov.br precisa estar acessível.
+- O retorno da API precisa conter estrutura compatível com o parser implementado.
+
+Resposta esperada:
+- Número do contrato
+- Objeto
+- Fornecedor
+- Órgão
+- Unidade / UASG, quando disponível
+- Modalidade, quando disponível
+- Processo, quando disponível
+- Valor
+- Vigência
+- Situação
+- Link, quando disponível
+
+Se nenhum resultado for encontrado:
+- A Hera deve responder com um aviso informando que nenhum contrato foi localizado para o termo buscado.
+
+Se ocorrer erro de integração:
+- A Hera deve responder com mensagem amigável informando falha temporária na consulta.
+
+Observações:
+- Esse comando é independente das consultas de planilha local.
+- Não exige que o contato tenha "INCA" no nome.
+- Não remove nem substitui nenhum comando já existente.
+- Deve apenas adicionar uma nova rota de consulta direta.
+
+
+----------------------------------------------------------------------
+9. CONTRATO / RH / TERCEIRIZADA
+----------------------------------------------------------------------
+
+9.1) Perguntas sobre contrato, RH e regras da empresa atual
+Exemplos:
+- como funciona o teletrabalho?
+- qual é a regra de ponto?
+- como funciona o vale alimentação?
+- qual a regra de férias da CNS?
+
+O que faz:
+- A Hera procura trechos relevantes nos documentos da pasta data/contrato/
+- Usa a empresa configurada como contexto.
+
+Condições para funcionar:
+- Os arquivos da pasta data/contrato/ precisam existir.
+- Os textos precisam conter conteúdo suficiente.
+- A empresa atual precisa estar definida em data/config.json, se necessário.
+
+Observações:
+- Se não encontrar base documental suficiente, a Hera informa que não encontrou a informação de forma clara.
+
+
+----------------------------------------------------------------------
+10. DATA, HORA E DDD
+----------------------------------------------------------------------
+
+10.1) Data e hora
+Exemplos:
+- que horas são?
+- que dia é hoje?
+- qual a data de hoje?
+
+O que faz:
+- Responde com data e hora local do sistema.
+
+Condições para funcionar:
+- A heurística da mensagem precisa reconhecer a intenção.
+
+Observações:
+- Não depende de API externa.
+
+
+10.2) DDD
+Exemplos:
+- DDD 21 é de qual estado?
+- qual estado do DDD 31?
+
+O que faz:
+- Responde usando um mapa local de DDDs.
+
+Condições para funcionar:
+- O DDD precisa estar no formato identificável.
+- A frase precisa ser reconhecida pela heurística.
+
+Observações:
+- Não depende de internet.
+
+
+----------------------------------------------------------------------
+11. PROCESSO SEI
+----------------------------------------------------------------------
+
+11.1) Número de processo SEI
+Exemplo:
+- 12345.123456/2025-12
+
+O que faz:
+- A Hera identifica a mensagem como processo SEI.
+- Responde dentro da lógica prevista para esse tipo de entrada.
+
+Condições para funcionar:
+- O texto precisa seguir o padrão regex de processo SEI.
+
+Observações:
+- A resposta pode ser apenas orientativa, dependendo da implementação.
+
+
+----------------------------------------------------------------------
+12. ÁUDIOS
+----------------------------------------------------------------------
+
+12.1) Áudio com transcrição
+O que faz:
+- A Hera baixa o áudio.
+- Transcreve o conteúdo.
+- Tenta aplicar os mesmos comandos e intenções que aplicaria a um texto.
+
+Condições para funcionar:
+- O áudio precisa ser enviado como áudio/ptt.
+- A transcrição precisa funcionar.
+- O provedor/modelo de transcrição precisa estar disponível.
+
+Observações:
+- Se a transcrição falhar, a Hera informa erro.
+- Se a transcrição funcionar, ela continua o fluxo como se fosse texto.
+
+
+----------------------------------------------------------------------
+13. PLANILHAS EXCEL RECEBIDAS NO WHATSAPP
+----------------------------------------------------------------------
+
+13.1) Arquivo Excel (.xlsx / .xls / .xlsm)
+O que faz:
+- A Hera recebe o arquivo.
+- Processa os códigos SIDEC.
+- Gera planilha de retorno com resultado.
+- Depois envia alerta de atenção para IRP quando houver risco.
+
+Condições para funcionar:
+- O arquivo precisa ter extensão compatível.
+- O arquivo precisa conter a estrutura esperada.
+- Para o fluxo SIDEC, a planilha deve conter:
+  - Código Sidec
+  - Descrição do Material
+- A API do Compras.gov.br precisa estar acessível.
+- O banco local SIDEC precisa estar acessível.
+- O sistema precisa conseguir gravar arquivos temporários.
+
+Observações:
+- A Hera envia progresso durante o processamento.
+- Se houver itens não utilizáveis, não encontrados ou com sugestão, envia alerta extra sobre IRP.
+
+
+----------------------------------------------------------------------
+14. COOLDOWN DE CONVERSA CASUAL
+----------------------------------------------------------------------
+
+A Hera possui um cooldown para conversas casuais.
+
+O que isso significa:
+- Mensagens comuns de bate-papo podem ser ignoradas por um período após a Hera responder.
+
+Comandos que normalmente furam o cooldown:
+- buscar <termo> (somente para contatos com "INCA" no nome)
+- lista de códigos (somente para contatos com "INCA" no nome)
+- comandos SIDEC / CATMAT
+- atualização de catálogo SIDEC
+- debug SIDEC
+- bloquear/desbloquear/listar bloqueios SIDEC
+- contrato <termo>
+- envio de Excel
+- demais comandos especiais reconhecidos
+
+Condições:
+- A identificação da mensagem como "comando especial" precisa ocorrer corretamente.
+
+
+----------------------------------------------------------------------
+15. RESUMO RÁPIDO DOS COMANDOS EXPLÍCITOS
+----------------------------------------------------------------------
+
+Comandos explícitos aceitos:
+
+- hera, disparar atas
+- robô, disparar atas
+- hera, atualizar catálogo sidec
+- hera, debug sidec <codigo>
+- hera, bloquear sidec <codigo> <motivo>
+- hera, desbloquear sidec <codigo>
+- hera, listar bloqueios sidec
+- buscar <termo>
+- contrato <termo>
+- &
+- &&
+
+Além disso, a Hera também aceita:
+- consultar sidec <codigo>
+- consultar catmat <codigo>
+- item <codigo> (somente para contatos com "INCA" no nome)
+- perguntas naturais sobre item, grade e estoque (somente para contatos com "INCA" no nome)
+- contagem da grade (somente para contatos com "INCA" no nome)
+- áudio
+- Excel
+
+FIM
